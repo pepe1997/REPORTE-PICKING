@@ -502,8 +502,9 @@ input {
   inset: 0;
   z-index: 1000;
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr) auto;
+  grid-template-rows: auto auto auto auto;
   overflow: auto;
+  overflow-anchor: none;
   padding: clamp(24px, 4vw, 64px);
   background:
     radial-gradient(circle at 50% 20%, rgba(139, 92, 246, .5), transparent 28%),
@@ -519,6 +520,52 @@ input {
   background-image: radial-gradient(rgba(255,255,255,.28) 1px, transparent 1px);
   background-size: 34px 34px;
   opacity: .22;
+}
+
+.ranking-celebration { position: fixed; inset: 0; z-index: 4; overflow: hidden; pointer-events: none; }
+.celebration-flash {
+  position: absolute;
+  left: 50%;
+  top: 32%;
+  width: 18vmin;
+  height: 18vmin;
+  border-radius: 50%;
+  background: rgba(255,255,255,.9);
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(.1);
+  animation: celebrationFlash .75s ease-out forwards;
+}
+.firework-burst { position: absolute; left: var(--x); top: var(--y); width: 4px; height: 4px; animation-delay: var(--delay); }
+.firework-burst i {
+  position: absolute;
+  width: 6px;
+  height: 18px;
+  border-radius: 999px;
+  background: var(--color);
+  box-shadow: 0 0 10px var(--color);
+  opacity: 0;
+  transform: rotate(var(--angle)) translateY(0) scaleY(.45);
+  transform-origin: 50% 100%;
+  animation: fireworkSpark 1.45s cubic-bezier(.12,.72,.22,1) var(--delay) forwards;
+}
+.celebration-confetti {
+  position: absolute;
+  left: var(--left);
+  top: -24px;
+  width: 9px;
+  height: 17px;
+  border-radius: 3px;
+  background: var(--color);
+  opacity: 0;
+  animation: celebrationConfetti 1.75s cubic-bezier(.18,.72,.25,1) var(--delay) forwards;
+}
+.presentation.celebrating .presentation-card { opacity: 1; animation: celebrationCard 1s ease-out both; }
+.presentation.celebrating .presentation-card.first { animation: celebrationChampion 1.2s cubic-bezier(.18,.85,.24,1) both; }
+.presentation.celebration-complete .presentation-card,
+.presentation.celebration-complete .presentation-card.first {
+  opacity: 1;
+  transform: none;
+  animation: none;
 }
 
 .presentation-countdown {
@@ -538,27 +585,33 @@ input {
 .presentation-countdown > span { color: #c7d2fe; font-size: 15px; font-weight: 900; letter-spacing: .22em; }
 .presentation-countdown > strong {
   display: grid;
-  width: clamp(180px, 24vw, 330px);
-  height: clamp(180px, 24vw, 330px);
+  box-sizing: border-box;
+  width: clamp(230px, 34vmin, 390px);
+  height: clamp(230px, 34vmin, 390px);
   place-items: center;
+  padding: 18px;
+  overflow: hidden;
   border: 5px solid rgba(251,191,36,.85);
   border-radius: 50%;
   background: radial-gradient(circle, rgba(251,191,36,.22), rgba(30,27,75,.7));
   color: #fbbf24;
   box-shadow: 0 0 75px rgba(251,191,36,.3), inset 0 0 50px rgba(99,102,241,.25);
-  font-size: clamp(88px, 15vw, 190px);
+  font-size: clamp(92px, 17vmin, 190px);
   line-height: 1;
+  white-space: nowrap;
 }
+.presentation-countdown > strong.is-word { font-size: clamp(72px, 11vmin, 126px); letter-spacing: -.04em; }
 .presentation-countdown > small { color: white; font-size: clamp(18px, 2.5vw, 30px); font-weight: 800; }
 .presentation-countdown .count-pop { animation: countPop .7s cubic-bezier(.2,.85,.25,1); }
 .presentation.counting .presentation-head,
 .presentation.counting .presentation-podium,
+.presentation.counting .presentation-ranking-rest,
 .presentation.counting .presentation-enter { opacity: 0; pointer-events: none; }
 .presentation.counting .presentation-card { animation: none; opacity: 0; }
 
-.presentation-head { position: relative; z-index: 1; text-align: center; animation: titleDrop .7s ease both; }
+.presentation-head { position: relative; z-index: 1; align-self: start; text-align: center; animation: titleDrop .7s ease both; }
 .presentation-head > span { color: #a5b4fc; font-size: 14px; font-weight: 900; letter-spacing: .22em; }
-.presentation-head h1 { margin: 8px 0 4px; font-size: clamp(42px, 7vw, 92px); line-height: .95; letter-spacing: -.04em; }
+.presentation-head h1 { margin: 0; font-size: clamp(40px, 6.2vw, 82px); line-height: .9; letter-spacing: -.04em; }
 .presentation-head p { margin: 0; color: #c7d2fe; font-size: clamp(15px, 2vw, 22px); font-weight: 800; }
 
 .presentation-podium {
@@ -569,7 +622,7 @@ input {
   gap: clamp(14px, 2vw, 30px);
   align-items: end;
   width: min(1380px, 100%);
-  margin: clamp(28px, 5vh, 60px) auto 20px;
+  margin: clamp(52px, 8vh, 92px) auto 20px;
 }
 
 .presentation-card {
@@ -632,6 +685,59 @@ input {
 .presentation-card > div:not(.presentation-avatar) span { font-size: 25px; font-weight: 900; }
 .presentation-card > div:not(.presentation-avatar) small, .presentation-card > i { color: #cbd5e1; font-size: 11px; font-style: normal; font-weight: 800; }
 
+.presentation-ranking-rest {
+  position: relative;
+  z-index: 1;
+  width: min(1100px, 100%);
+  margin: 20px auto 8px;
+}
+.presentation-rest-card {
+  padding: clamp(18px, 2.5vw, 30px);
+  border: 1px solid rgba(255,255,255,.22);
+  border-radius: 24px;
+  background: rgba(15,23,42,.68);
+  box-shadow: 0 20px 45px rgba(0,0,0,.25);
+}
+.presentation-rest-card h2 { margin: 0 0 16px; text-align: center; font-size: clamp(25px, 3vw, 38px); }
+.presentation-rest-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  max-height: 540px;
+  overflow: auto;
+  padding: 3px 6px 3px 3px;
+}
+.presentation-rest-list article {
+  display: grid;
+  grid-template-columns: 48px 58px minmax(0, 1fr);
+  gap: 13px;
+  align-items: center;
+  min-width: 0;
+  padding: 17px;
+  border: 1px solid rgba(165,180,252,.3);
+  border-left: 5px solid #818cf8;
+  border-radius: 17px;
+  background: linear-gradient(135deg, rgba(255,255,255,.14), rgba(255,255,255,.06));
+}
+.presentation-rest-list article:nth-child(-n+3) { border-left-color: #fbbf24; }
+.presentation-rest-list article > span { display: grid; width: 45px; height: 45px; place-items: center; border-radius: 50%; background: #dbeafe; color: #312e81; font-size: 19px; font-weight: 900; }
+.presentation-rest-list .operator-mini-avatar { width: 54px; height: 54px; font-size: 22px; }
+.presentation-rest-user { min-width: 0; }
+.presentation-rest-user strong, .presentation-rest-user small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.presentation-rest-user strong { font-size: 19px; }
+.presentation-rest-user small { margin-top: 3px; color: #c7d2fe; font-size: 12px; }
+.presentation-rest-metrics {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.presentation-rest-metrics > div { padding: 11px 13px; border-radius: 12px; background: rgba(2,6,23,.38); text-align: center; }
+.presentation-rest-metrics b, .presentation-rest-metrics small { display: block; }
+.presentation-rest-metrics b { color: white; font-size: clamp(24px, 2.2vw, 32px); line-height: 1.1; }
+.presentation-rest-metrics div:last-child b { color: #fbbf24; }
+.presentation-rest-metrics small { margin-top: 4px; color: #c7d2fe; font-size: 11px; font-weight: 800; text-transform: uppercase; }
+
 .presentation-enter {
   position: relative;
   z-index: 1;
@@ -656,6 +762,36 @@ input {
 @keyframes turnButtonIn { to { opacity: 1; transform: translateY(0); } }
 @keyframes generatePulse { 0%, 100% { box-shadow: 0 18px 38px rgba(245,158,11,.28); } 50% { box-shadow: 0 20px 55px rgba(245,158,11,.55); } }
 @keyframes countPop { 0% { opacity: 0; transform: scale(.45) rotate(-8deg); } 65% { opacity: 1; transform: scale(1.12) rotate(2deg); } 100% { opacity: 1; transform: scale(1) rotate(0); } }
+@keyframes fireworkSpark {
+  0% { opacity: 0; transform: rotate(var(--angle)) translateY(0) scaleY(.4); }
+  18% { opacity: 1; }
+  72% { opacity: .95; }
+  100% { opacity: 0; transform: rotate(var(--angle)) translateY(var(--distance)) scaleY(1); }
+}
+@keyframes celebrationFlash {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(.1); }
+  35% { opacity: .5; }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(5); }
+}
+@keyframes celebrationConfetti {
+  0% { opacity: 0; transform: translate3d(0, -20px, 0) rotate(0); }
+  12% { opacity: 1; }
+  100% { opacity: 0; transform: translate3d(var(--drift), 105vh, 0) rotate(var(--spin)); }
+}
+@keyframes celebrationCard {
+  0% { filter: brightness(1); transform: translateY(18px) scale(.97); }
+  45% { filter: brightness(1.2); transform: translateY(-5px) scale(1.015); }
+  100% { filter: brightness(1); transform: translateY(0) scale(1); }
+}
+@keyframes celebrationChampion {
+  0% { filter: brightness(1); transform: translateY(25px) scale(.94); }
+  45% { filter: brightness(1.28); transform: translateY(-12px) scale(1.035); }
+  100% { filter: brightness(1); transform: translateY(0) scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .firework-burst i, .celebration-confetti, .celebration-flash { animation: none; }
+}
 
 @media (max-width: 1000px) {
   .two-column { grid-template-columns: 1fr; }
@@ -665,6 +801,7 @@ input {
   .hero-total { min-width: 0; }
   .presentation-podium { grid-template-columns: 1fr; align-items: stretch; }
   .presentation-card, .presentation-card.first { min-height: 430px; }
+  .presentation-rest-list { grid-template-columns: 1fr; }
   .admin-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .admin-kpi.total { grid-column: span 2; }
   .admin-detail-grid { grid-template-columns: 1fr; }

@@ -12,7 +12,7 @@ let presentacionPendiente = true;
 let rolActual = "";
 let turnoOperadorSeleccionado = "";
 let temporizadoresPresentacion = [];
-let resultadoOperadorPendiente = false;
+let audioCelebracion = null;
 let modeloPickingCache = null;
 let directorioUsuariosCache = null;
 let vistasPickingCache = new Map();
@@ -260,6 +260,102 @@ function tarjetasPresentacion(data, total, aliases) {
     </article>` : `<article class="presentation-card empty"><strong>Sin usuario</strong></article>`).join("");
 }
 
+function restoPresentacion(data, total, aliases) {
+  const restantes = data.slice(3, 10);
+  if (!restantes.length) return "";
+  return `<section class="presentation-rest-card">
+    <h2>Puestos 4 al 10</h2>
+    <div class="presentation-rest-list">${restantes.map((x, index) => `
+      <article>
+        <span>${index + 4}</span>
+        <div class="operator-mini-avatar">${html((nombreUsuario(x.usuario, aliases)[0] || "U").toUpperCase())}</div>
+        <div class="presentation-rest-user"><strong>${html(nombreUsuario(x.usuario, aliases))}</strong><small>${html(x.usuario)}</small></div>
+        <div class="presentation-rest-metrics">
+          <div><b>${fmt(x.bultos)}</b><small>Bultos</small></div>
+          <div><b>${fmt(x.promedioHora)}</b><small>Promedio / hora</small></div>
+        </div>
+      </article>`).join("")}</div>
+  </section>`;
+}
+
+function prepararAudioCelebracion() {
+  try {
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContext) return;
+    if (!audioCelebracion) audioCelebracion = new AudioContext();
+    if (audioCelebracion.state === "suspended") audioCelebracion.resume();
+  } catch {}
+}
+
+function reproducirCelebracion() {
+  if (!audioCelebracion) return;
+  const inicio = audioCelebracion.currentTime;
+  [523.25, 659.25, 783.99].forEach((frecuencia, index) => {
+    const oscilador = audioCelebracion.createOscillator();
+    const ganancia = audioCelebracion.createGain();
+    const desde = inicio + index * 0.11;
+    oscilador.type = "sine";
+    oscilador.frequency.setValueAtTime(frecuencia, desde);
+    ganancia.gain.setValueAtTime(0.0001, desde);
+    ganancia.gain.exponentialRampToValueAtTime(0.09, desde + 0.025);
+    ganancia.gain.exponentialRampToValueAtTime(0.0001, desde + 0.32);
+    oscilador.connect(ganancia).connect(audioCelebracion.destination);
+    oscilador.start(desde);
+    oscilador.stop(desde + 0.34);
+  });
+}
+
+function lanzarCelebracion() {
+  const contenedor = document.getElementById("celebracionRanking");
+  if (!contenedor || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  contenedor.innerHTML = "";
+  const presentacion = document.getElementById("presentacionView");
+  const colores = ["#fbbf24", "#60a5fa", "#f472b6", "#34d399", "#ffffff"];
+  const destello = document.createElement("span");
+  destello.className = "celebration-flash";
+  contenedor.appendChild(destello);
+  [[24, 29], [50, 18], [77, 30]].forEach(([x, y], grupo) => {
+    const explosion = document.createElement("div");
+    explosion.className = "firework-burst";
+    explosion.style.setProperty("--x", `${x}%`);
+    explosion.style.setProperty("--y", `${y}%`);
+    explosion.style.setProperty("--delay", `${grupo * 120}ms`);
+    for (let i = 0; i < 14; i += 1) {
+      const chispa = document.createElement("i");
+      chispa.style.setProperty("--angle", `${i * (360 / 14)}deg`);
+      chispa.style.setProperty("--distance", `${-(75 + (i % 3) * 20)}px`);
+      chispa.style.setProperty("--color", colores[(i + grupo) % colores.length]);
+      explosion.appendChild(chispa);
+    }
+    contenedor.appendChild(explosion);
+  });
+  for (let i = 0; i < 28; i += 1) {
+    const confeti = document.createElement("b");
+    confeti.className = "celebration-confetti";
+    confeti.style.setProperty("--left", `${3 + (i * 17) % 94}%`);
+    confeti.style.setProperty("--delay", `${(i % 9) * 55}ms`);
+    confeti.style.setProperty("--drift", `${-55 + (i * 31) % 110}px`);
+    confeti.style.setProperty("--spin", `${360 + (i % 4) * 180}deg`);
+    confeti.style.setProperty("--color", colores[i % colores.length]);
+    contenedor.appendChild(confeti);
+  }
+  presentacion?.classList.add("celebrating");
+  setTimeout(() => {
+    contenedor.innerHTML = "";
+    presentacion?.classList.add("celebration-complete");
+    presentacion?.classList.remove("celebrating");
+  }, 2100);
+}
+
+function reiniciarScrollPresentacion(vista) {
+  if (!vista) return;
+  vista.scrollTop = 0;
+  vista.scrollLeft = 0;
+  if (typeof vista.scrollTo === "function") vista.scrollTo({ top: 0, left: 0, behavior: "auto" });
+  const listaRestante = vista.querySelector(".presentation-rest-list");
+  if (listaRestante) listaRestante.scrollTop = 0;
+}
+
 function mostrarPresentacion(turnoForzado) {
   if (!dataPicking.length) return;
   temporizadoresPresentacion.forEach(clearTimeout);
@@ -270,12 +366,17 @@ function mostrarPresentacion(turnoForzado) {
   const resumen = vistaPicking(turno);
   const total = resumen.total;
   const top = resumen.ranking.slice(0, 3);
-  document.getElementById("presentacionPodio").innerHTML = tarjetasPresentacion(top, total, aliasUsuarios());
+  const aliases = aliasUsuarios();
+  document.getElementById("presentacionPodio").innerHTML = tarjetasPresentacion(top, total, aliases);
+  document.getElementById("presentacionResto").innerHTML = restoPresentacion(resumen.ranking, total, aliases);
   const vista = document.getElementById("presentacionView");
+  vista.classList.remove("celebrating", "celebration-complete");
   const cuenta = document.getElementById("presentationCountdown");
   const numeroCuenta = document.getElementById("countdownNumber");
   vista.hidden = false;
   document.body.classList.add("presentation-open");
+  reiniciarScrollPresentacion(vista);
+  requestAnimationFrame(() => requestAnimationFrame(() => reiniciarScrollPresentacion(vista)));
 
   if (rolActual !== "operador") {
     vista.classList.remove("counting");
@@ -285,18 +386,24 @@ function mostrarPresentacion(turnoForzado) {
 
   vista.classList.add("counting");
   cuenta.hidden = false;
+  numeroCuenta.classList.remove("is-word");
   numeroCuenta.textContent = "3";
   ["2", "1", "TOP"].forEach((valor, index) => {
     temporizadoresPresentacion.push(setTimeout(() => {
       numeroCuenta.classList.remove("count-pop");
       void numeroCuenta.offsetWidth;
       numeroCuenta.textContent = valor;
+      numeroCuenta.classList.toggle("is-word", valor === "TOP");
       numeroCuenta.classList.add("count-pop");
     }, (index + 1) * 850));
   });
   temporizadoresPresentacion.push(setTimeout(() => {
+    reiniciarScrollPresentacion(vista);
     cuenta.hidden = true;
     vista.classList.remove("counting");
+    requestAnimationFrame(() => reiniciarScrollPresentacion(vista));
+    lanzarCelebracion();
+    reproducirCelebracion();
   }, 3500));
 }
 
@@ -304,50 +411,19 @@ function cerrarPresentacion() {
   temporizadoresPresentacion.forEach(clearTimeout);
   temporizadoresPresentacion = [];
   const vista = document.getElementById("presentacionView");
+  reiniciarScrollPresentacion(vista);
   vista.hidden = true;
   vista.classList.remove("counting");
   document.body.classList.remove("presentation-open");
-  if (rolActual === "operador" && resultadoOperadorPendiente) {
-    resultadoOperadorPendiente = false;
-    renderTop10Operador();
-    document.getElementById("resultadoOperador").scrollIntoView({ block: "start" });
-  }
 }
 
 function seleccionarTurnoOperador(boton) {
   turnoOperadorSeleccionado = limpiar(boton.dataset.turno);
   document.querySelectorAll("#turnosOperador button").forEach(x => x.classList.toggle("active", x === boton));
-  const resultado = document.getElementById("resultadoOperador");
-  if (resultado && !resultado.hidden) renderTop10Operador();
-}
-
-function renderTop10Operador() {
-  const resumen = vistaPicking(turnoOperadorSeleccionado);
-  const total = resumen.total;
-  const ranking = resumen.ranking;
-  const aliases = aliasUsuarios();
-  const titulo = turnoOperadorSeleccionado || "GENERAL";
-  document.getElementById("resultadoOperador").hidden = false;
-  document.getElementById("resultadoOperador").innerHTML = `
-    <div class="operator-result-head">
-      <div><h2>Top 10 Picking ${html(titulo)}</h2></div>
-      <strong>${fmt(total)} <small>bultos</small></strong>
-    </div>
-    <div class="operator-top10">
-      ${ranking.slice(0, 10).map((x, index) => `
-        <article style="--row-delay:${index * 70}ms">
-          <span>${index + 1}</span>
-          <div class="operator-mini-avatar">${html((nombreUsuario(x.usuario, aliases)[0] || "U").toUpperCase())}</div>
-          <div><strong>${html(nombreUsuario(x.usuario, aliases))}</strong><small>${html(x.usuario)}</small></div>
-          <b>${fmt(x.bultos)} <small>bultos</small></b>
-          <em>${fmt(x.promedioHora)} prom/h</em>
-        </article>`).join("") || `<div class="empty-state">Sin datos para este turno.</div>`}
-    </div>`;
 }
 
 function generarRankingOperador() {
-  document.getElementById("resultadoOperador").hidden = true;
-  resultadoOperadorPendiente = true;
+  prepararAudioCelebracion();
   mostrarPresentacion(turnoOperadorSeleccionado);
 }
 
@@ -532,7 +608,6 @@ async function cargarDatos() {
   cargarOpcionesTurno(modelo);
   document.getElementById("estadoCarga").textContent = `${resultado.hoja}: ${fmt(modelo.length)} registros | Usuarios: ${fmt(dataUsuarios.length)}`;
   if (rolActual === "admin") renderRanking();
-  if (rolActual === "operador" && !document.getElementById("resultadoOperador").hidden) renderTop10Operador();
 }
 
 async function recargarDatos() {

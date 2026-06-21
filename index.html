@@ -66,12 +66,12 @@
         </div>
         <button class="generate-top" onclick="generarRankingOperador()">GENERAR TOP 3</button>
       </section>
-      <section id="resultadoOperador" class="operator-result" hidden></section>
     </main>
   </section>
 
   <section id="presentacionView" class="presentation" hidden>
     <div class="presentation-glow"></div>
+    <div id="celebracionRanking" class="ranking-celebration" aria-hidden="true"></div>
     <div id="presentationCountdown" class="presentation-countdown" hidden>
       <span>PREPARANDO RESULTADOS</span>
       <strong id="countdownNumber">3</strong>
@@ -80,7 +80,8 @@
       <h1>TOP 3 PICKING</h1>
     </div>
     <div id="presentacionPodio" class="presentation-podium"></div>
-    <button class="presentation-enter" onclick="cerrarPresentacion()">Ingresar al ranking</button>
+    <div id="presentacionResto" class="presentation-ranking-rest"></div>
+    <button class="presentation-enter" onclick="cerrarPresentacion()">Volver</button>
   </section>
 
   <script src="js/app.js"></script>
