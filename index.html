@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ANC | Ranking Picking</title>
+  <link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+  <section id="loginView" class="login-view">
+    <form class="login-card" onsubmit="login(event)">
+      <div class="login-brand"><span>ANC</span><div><strong>ANC Logistica</strong><small>Ranking Picking</small></div></div>
+      <h1>Bienvenido</h1>
+      <label>Usuario<input id="usuario" autocomplete="username" required></label>
+      <label>Contrasena<input id="password" type="password" autocomplete="current-password" required></label>
+      <button type="submit">Ingresar</button>
+      <div id="loginError" class="login-error"></div>
+    </form>
+  </section>
+
+  <section id="appView" hidden>
+    <header class="topbar">
+      <div>
+        <strong>ANC Logistica</strong>
+        <span id="estadoCarga">Preparando ranking...</span>
+      </div>
+      <div class="topbar-actions">
+        <span id="usuarioActivo" class="user-pill"></span>
+        <button id="btnActualizar" type="button" onclick="recargarDatos()">Actualizar Google Sheet</button>
+        <button type="button" class="ghost" onclick="logout()">Salir</button>
+      </div>
+    </header>
+
+    <main id="adminView" class="page">
+      <section class="hero">
+        <div>
+          <h1>Control Operativo Picking</h1>
+        </div>
+        <div class="hero-total">
+          <strong id="totalPicking">0</strong>
+          <span>Bultos analizados</span>
+        </div>
+      </section>
+
+      <section class="filters">
+        <label>Turno
+          <select id="filtroTurno" onchange="renderRanking()">
+            <option value="">Todos los turnos</option>
+          </select>
+        </label>
+      </section>
+
+      <div id="contenido">
+        <div class="loading">Cargando data de picking...</div>
+      </div>
+    </main>
+
+    <main id="operadorView" class="operator-page" hidden>
+      <section class="operator-launch">
+        <h1>Generar Top Operativo</h1>
+        <div class="operator-turns" id="turnosOperador">
+          <button class="active" data-turno="" onclick="seleccionarTurnoOperador(this)">GENERAL</button>
+          <button data-turno="DIA" onclick="seleccionarTurnoOperador(this)">DIA</button>
+          <button data-turno="TARDE" onclick="seleccionarTurnoOperador(this)">TARDE</button>
+          <button data-turno="NOCHE" onclick="seleccionarTurnoOperador(this)">NOCHE</button>
+        </div>
+        <button class="generate-top" onclick="generarRankingOperador()">GENERAR TOP 3</button>
+      </section>
+      <section id="resultadoOperador" class="operator-result" hidden></section>
+    </main>
+  </section>
+
+  <section id="presentacionView" class="presentation" hidden>
+    <div class="presentation-glow"></div>
+    <div id="presentationCountdown" class="presentation-countdown" hidden>
+      <span>PREPARANDO RESULTADOS</span>
+      <strong id="countdownNumber">3</strong>
+    </div>
+    <div class="presentation-head">
+      <h1>TOP 3 PICKING</h1>
+    </div>
+    <div id="presentacionPodio" class="presentation-podium"></div>
+    <button class="presentation-enter" onclick="cerrarPresentacion()">Ingresar al ranking</button>
+  </section>
+
+  <script src="js/app.js"></script>
+</body>
+</html>
