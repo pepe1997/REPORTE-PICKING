@@ -523,6 +523,18 @@ input {
 }
 
 .ranking-celebration { position: fixed; inset: 0; z-index: 4; overflow: hidden; pointer-events: none; }
+.presentation.celebrating .ranking-celebration::before,
+.presentation.celebrating .ranking-celebration::after {
+  position: absolute;
+  width: 62vmin;
+  height: 62vmin;
+  border-radius: 50%;
+  content: "";
+  opacity: .28;
+  animation: ambientLight 3.8s ease-in-out infinite alternate;
+}
+.presentation.celebrating .ranking-celebration::before { left: -18vmin; top: 8%; background: radial-gradient(circle, rgba(59,130,246,.72), transparent 68%); }
+.presentation.celebrating .ranking-celebration::after { right: -18vmin; top: 4%; background: radial-gradient(circle, rgba(245,158,11,.62), transparent 68%); animation-delay: -1.9s; }
 .celebration-flash {
   position: absolute;
   left: 50%;
@@ -557,7 +569,7 @@ input {
   border-radius: 3px;
   background: var(--color);
   opacity: 0;
-  animation: celebrationConfetti 1.75s cubic-bezier(.18,.72,.25,1) var(--delay) forwards;
+  animation: celebrationConfetti 3.35s linear var(--delay) infinite;
 }
 .presentation.celebrating .presentation-card { opacity: 1; animation: celebrationCard 1s ease-out both; }
 .presentation.celebrating .presentation-card.first { animation: celebrationChampion 1.2s cubic-bezier(.18,.85,.24,1) both; }
@@ -623,6 +635,7 @@ input {
   align-items: end;
   width: min(1380px, 100%);
   margin: clamp(52px, 8vh, 92px) auto 20px;
+  padding-bottom: clamp(105px, 14vh, 175px);
 }
 
 .presentation-card {
@@ -647,6 +660,11 @@ input {
   border: 2px solid rgba(251,191,36,.75);
   background: linear-gradient(180deg, rgba(245,158,11,.32), rgba(124,58,237,.14));
   animation-name: championRise;
+}
+.presentation-card.second,
+.presentation-card.third {
+  position: relative;
+  top: clamp(105px, 14vh, 175px);
 }
 
 .presentation-rank {
@@ -788,9 +806,15 @@ input {
   45% { filter: brightness(1.28); transform: translateY(-12px) scale(1.035); }
   100% { filter: brightness(1); transform: translateY(0) scale(1); }
 }
+@keyframes ambientLight {
+  from { opacity: .16; transform: scale(.82) translateY(-3%); }
+  to { opacity: .42; transform: scale(1.14) translateY(5%); }
+}
 
 @media (prefers-reduced-motion: reduce) {
-  .firework-burst i, .celebration-confetti, .celebration-flash { animation: none; }
+  .firework-burst i, .celebration-confetti, .celebration-flash,
+  .presentation.celebrating .ranking-celebration::before,
+  .presentation.celebrating .ranking-celebration::after { animation: none; }
 }
 
 @media (max-width: 1000px) {
@@ -801,6 +825,8 @@ input {
   .hero-total { min-width: 0; }
   .presentation-podium { grid-template-columns: 1fr; align-items: stretch; }
   .presentation-card, .presentation-card.first { min-height: 430px; }
+  .presentation-podium { padding-bottom: 0; }
+  .presentation-card.second, .presentation-card.third { top: 0; }
   .presentation-rest-list { grid-template-columns: 1fr; }
   .admin-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .admin-kpi.total { grid-column: span 2; }

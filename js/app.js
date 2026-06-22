@@ -75,6 +75,7 @@ function turnoPorHora(hora) {
 function pickingValido(row) {
   const orden = normalizar(row.orden);
   const descripcion = normalizar(row.descripcion);
+  if (normalizar(row.tipo) === "FULL-CONTAINER") return false;
   if (normalizar(row.lpn).startsWith("ILE")) return false;
   if (orden.startsWith("TFC")) return false;
   if (orden.startsWith("TRF") && descripcion.startsWith("JABA")) return false;
@@ -89,6 +90,7 @@ function modeloPicking() {
     return {
       index,
       orden: limpiar(campo(r, ["NRO ORDEN", "ORDEN"])),
+      tipo: limpiar(campo(r, ["TIPO ASGIN", "TIPO ASIGN", "TIPO_ASGIN", "TIPO ASIGNACION"])),
       lpn: limpiar(campo(r, ["NRO LPN", "LPN"])),
       usuario: limpiar(campo(r, ["USUARIO PICKING", "USUARIO", "OPERADOR"])) || "SIN USUARIO",
       codigo: limpiar(campo(r, ["CODIGO", "CODIGO PRODUCTO", "PRODUCTO", "SKU"])),
@@ -333,18 +335,16 @@ function lanzarCelebracion() {
     const confeti = document.createElement("b");
     confeti.className = "celebration-confetti";
     confeti.style.setProperty("--left", `${3 + (i * 17) % 94}%`);
-    confeti.style.setProperty("--delay", `${(i % 9) * 55}ms`);
+    confeti.style.setProperty("--delay", `${(i % 14) * 230}ms`);
     confeti.style.setProperty("--drift", `${-55 + (i * 31) % 110}px`);
     confeti.style.setProperty("--spin", `${360 + (i % 4) * 180}deg`);
     confeti.style.setProperty("--color", colores[i % colores.length]);
     contenedor.appendChild(confeti);
   }
   presentacion?.classList.add("celebrating");
-  setTimeout(() => {
-    contenedor.innerHTML = "";
+  temporizadoresPresentacion.push(setTimeout(() => {
     presentacion?.classList.add("celebration-complete");
-    presentacion?.classList.remove("celebrating");
-  }, 2100);
+  }, 1300));
 }
 
 function reiniciarScrollPresentacion(vista) {
@@ -371,6 +371,7 @@ function mostrarPresentacion(turnoForzado) {
   document.getElementById("presentacionResto").innerHTML = restoPresentacion(resumen.ranking, total, aliases);
   const vista = document.getElementById("presentacionView");
   vista.classList.remove("celebrating", "celebration-complete");
+  document.getElementById("celebracionRanking").innerHTML = "";
   const cuenta = document.getElementById("presentationCountdown");
   const numeroCuenta = document.getElementById("countdownNumber");
   vista.hidden = false;
@@ -412,6 +413,8 @@ function cerrarPresentacion() {
   temporizadoresPresentacion = [];
   const vista = document.getElementById("presentacionView");
   reiniciarScrollPresentacion(vista);
+  vista.classList.remove("celebrating", "celebration-complete");
+  document.getElementById("celebracionRanking").innerHTML = "";
   vista.hidden = true;
   vista.classList.remove("counting");
   document.body.classList.remove("presentation-open");
