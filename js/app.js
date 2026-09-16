@@ -73,12 +73,6 @@ function turnoPorHora(hora) {
 }
 
 function pickingValido(row) {
-  const orden = normalizar(row.orden);
-  const descripcion = normalizar(row.descripcion);
-  if (normalizar(row.tipo) === "FULL-CONTAINER") return false;
-  if (normalizar(row.lpn).startsWith("ILE")) return false;
-  if (orden.startsWith("TFC")) return false;
-  if (orden.startsWith("TRF") && descripcion.startsWith("JABA")) return false;
   return row.bultos > 0;
 }
 
