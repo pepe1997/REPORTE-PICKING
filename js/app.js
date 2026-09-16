@@ -249,18 +249,15 @@ function tarjetasPresentacion(data, total, aliases) {
       <div class="presentation-avatar">${html((nombreUsuario(x.usuario, aliases)[0] || "U").toUpperCase())}</div>
       <strong>${html(nombreUsuario(x.usuario, aliases))}</strong>
       <small>${html(x.usuario)}</small>
-      <b>${fmt(x.bultos)}</b>
-      <em>BULTOS PICKADOS</em>
-      <div><span>${fmt(x.promedioHora)}</span><small>Promedio por hora</small></div>
-      <i>${pct(x.bultos, total).toFixed(1)}% del total</i>
+      <div><span>${fmt(x.bultos)}</span><small>Bultos pickados</small></div>
     </article>` : `<article class="presentation-card empty"><strong>Sin usuario</strong></article>`).join("");
 }
 
 function restoPresentacion(data, total, aliases) {
-  const restantes = data.slice(3, 10);
+  const restantes = data.slice(3, 11);
   if (!restantes.length) return "";
   return `<section class="presentation-rest-card">
-    <h2>Puestos 4 al 10</h2>
+    <h2>Puestos 4 al 11</h2>
     <div class="presentation-rest-list">${restantes.map((x, index) => `
       <article>
         <span>${index + 4}</span>
