@@ -16,7 +16,7 @@ let audioCelebracion = null;
 let modeloPickingCache = null;
 let directorioUsuariosCache = null;
 let vistasPickingCache = new Map();
-let totalesTurnoCache = { DIA: 0, TARDE: 0, NOCHE: 0 };
+let totalesTurnoCache = { TOTAL: 0, DIA: 0, TARDE: 0, NOCHE: 0, "SIN TURNO": 0 };
 
 function limpiar(valor) {
   return String(valor ?? "").trim();
@@ -173,17 +173,35 @@ function guardarAlias(usuario, nombre) {
 function rankingUsuarios(data) {
   const mapa = new Map();
   data.forEach(r => {
-    if (!mapa.has(r.usuario)) mapa.set(r.usuario, { usuario: r.usuario, bultos: 0, registros: 0, horas: new Map() });
+    if (!mapa.has(r.usuario)) {
+      mapa.set(r.usuario, {
+        usuario: r.usuario,
+        bultos: 0,
+        registros: 0,
+        horas: new Map(),
+        turnos: new Map()
+      });
+    }
     const item = mapa.get(r.usuario);
     item.bultos += r.bultos;
     item.registros += 1;
     if (r.hora !== null) item.horas.set(r.hora, (item.horas.get(r.hora) || 0) + r.bultos);
+    item.turnos.set(r.turno, (item.turnos.get(r.turno) || 0) + r.bultos);
   });
 
   return Array.from(mapa.values()).map(item => {
     const horas = Array.from(item.horas.entries()).sort((a, b) => b[1] - a[1]);
+    const turnos = {
+      DIA: item.turnos.get("DIA") || 0,
+      TARDE: item.turnos.get("TARDE") || 0,
+      NOCHE: item.turnos.get("NOCHE") || 0,
+      "SIN TURNO": item.turnos.get("SIN TURNO") || 0
+    };
+    const turnosActivos = Object.entries(turnos).filter(([, valor]) => valor > 0).map(([turno]) => turno);
     return {
       ...item,
+      turnos,
+      turnosActivos,
       horasActivas: item.horas.size,
       promedioHora: item.horas.size ? item.bultos / item.horas.size : 0,
       horaPico: horas.length ? `${String(horas[0][0]).padStart(2, "0")}:00` : "-",
@@ -269,6 +287,16 @@ function restoPresentacion(data, total, aliases) {
         </div>
       </article>`).join("")}</div>
   </section>`;
+}
+
+function resumenTurnosPresentacion(turno, totalVista) {
+  const totalGeneral = totalesTurnoCache.TOTAL || totalVista;
+  return `
+    <article class="presentation-total-main">
+      <span>Total picking</span>
+      <strong>${fmt(totalGeneral)}</strong>
+    </article>
+  `;
 }
 
 function prepararAudioCelebracion() {
@@ -358,6 +386,7 @@ function mostrarPresentacion(turnoForzado) {
   const total = resumen.total;
   const top = resumen.ranking.slice(0, 3);
   const aliases = aliasUsuarios();
+  document.getElementById("presentacionResumenTurnos").innerHTML = resumenTurnosPresentacion(turno, total);
   document.getElementById("presentacionPodio").innerHTML = tarjetasPresentacion(top, total, aliases);
   document.getElementById("presentacionResto").innerHTML = restoPresentacion(resumen.ranking, total, aliases);
   const vista = document.getElementById("presentacionView");
@@ -461,9 +490,10 @@ function prepararVistasPicking() {
   const modelo = modeloPicking();
   const turnos = Array.from(new Set(modelo.map(r => r.turno))).sort();
   vistasPickingCache = new Map();
-  totalesTurnoCache = { DIA: 0, TARDE: 0, NOCHE: 0 };
+  totalesTurnoCache = { TOTAL: 0, DIA: 0, TARDE: 0, NOCHE: 0, "SIN TURNO": 0 };
 
   modelo.forEach(r => {
+    totalesTurnoCache.TOTAL += r.bultos;
     if (totalesTurnoCache[r.turno] !== undefined) totalesTurnoCache[r.turno] += r.bultos;
   });
 
@@ -500,8 +530,18 @@ function vistaPicking(turno = "") {
 function detalleUsuariosAdmin(data, total) {
   const aliases = aliasUsuarios();
   if (!data.length) return `<div class="empty-state">Sin usuarios para el turno seleccionado.</div>`;
-  return `<div class="admin-detail-scroll"><table class="admin-detail-table"><thead><tr><th>#</th><th>Usuario</th><th>Nombre</th><th>Bultos</th><th>Promedio / hora</th><th>Horas activas</th><th>Participacion</th></tr></thead><tbody>${data.map((x, index) => `
-    <tr><td><span class="admin-rank">${index + 1}</span></td><td><strong>${html(x.usuario)}</strong></td><td>${html(nombreUsuario(x.usuario, aliases))}</td><td class="admin-main-number">${fmt(x.bultos)}</td><td class="admin-average">${fmt(x.promedioHora)}</td><td>${fmt(x.horasActivas)}</td><td>${pct(x.bultos, total).toFixed(1)}%</td></tr>`).join("")}</tbody></table></div>`;
+  return `<div class="admin-detail-scroll"><table class="admin-detail-table user-shift-table"><thead><tr><th>#</th><th>Usuario</th><th>Nombre</th><th>Bultos</th><th>Turnos detectados</th><th>Promedio / hora</th><th>Horas activas</th><th>Participacion</th></tr></thead><tbody>${data.map((x, index) => `
+    <tr><td><span class="admin-rank">${index + 1}</span></td><td><strong>${html(x.usuario)}</strong></td><td>${html(nombreUsuario(x.usuario, aliases))}</td><td class="admin-main-number">${fmt(x.bultos)}</td><td>${turnosUsuarioHtml(x)}</td><td class="admin-average">${fmt(x.promedioHora)}</td><td>${fmt(x.horasActivas)}</td><td>${pct(x.bultos, total).toFixed(1)}%</td></tr>`).join("")}</tbody></table></div>`;
+}
+
+function turnosUsuarioHtml(usuario) {
+  const turnos = usuario.turnos || {};
+  const orden = ["DIA", "TARDE", "NOCHE"];
+  const activos = orden.filter(turno => Number(turnos[turno] || 0) > 0);
+  return `<div class="shift-split ${activos.length > 1 ? "multi" : ""}">
+    ${orden.map(turno => `<span class="${turno.toLowerCase()} ${Number(turnos[turno] || 0) > 0 ? "active" : ""}"><b>${turno}</b><em>${fmt(turnos[turno] || 0)}</em></span>`).join("")}
+    ${Number(turnos["SIN TURNO"] || 0) > 0 ? `<span class="sin-turno active"><b>S/T</b><em>${fmt(turnos["SIN TURNO"])}</em></span>` : ""}
+  </div>`;
 }
 
 function detalleProductosAdmin(data, total) {
@@ -560,15 +600,17 @@ function renderRanking() {
   const turno = limpiar(document.getElementById("filtroTurno").value);
   const resumen = vistaPicking(turno);
   const total = resumen.total;
+  const totalGeneral = totalesTurnoCache.TOTAL;
   const dia = totalesTurnoCache.DIA;
   const tarde = totalesTurnoCache.TARDE;
   const noche = totalesTurnoCache.NOCHE;
   const horas = resumen.horas;
   const promedioHora = resumen.promedioHora;
-  document.getElementById("totalPicking").textContent = fmt(total);
+  document.getElementById("totalPicking").textContent = fmt(totalGeneral);
   document.getElementById("contenido").innerHTML = `
     <section class="admin-kpis">
-      <article class="admin-kpi total"><span>Total ${html(turno || "general")}</span><strong>${fmt(total)}</strong><small>Bultos pickados</small></article>
+      <article class="admin-kpi total"><span>Total todo picking</span><strong>${fmt(totalGeneral)}</strong><small>Bultos pickados generales</small></article>
+      <article class="admin-kpi vista ${turno ? "selected" : ""}"><span>Vista ${html(turno || "general")}</span><strong>${fmt(total)}</strong><small>${turno ? `Bultos del turno ${html(turno)}` : "Mismo total general"}</small></article>
       <article class="admin-kpi dia ${turno === "DIA" ? "selected" : ""}"><span>Turno dia</span><strong>${fmt(dia)}</strong><small>07:00 a 15:59</small></article>
       <article class="admin-kpi tarde ${turno === "TARDE" ? "selected" : ""}"><span>Turno tarde</span><strong>${fmt(tarde)}</strong><small>16:00 a 20:59</small></article>
       <article class="admin-kpi noche ${turno === "NOCHE" ? "selected" : ""}"><span>Turno noche</span><strong>${fmt(noche)}</strong><small>21:00 a 06:59</small></article>
